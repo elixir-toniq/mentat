@@ -8,13 +8,13 @@ Provides a super simple cache with ttls.
 
 A cache must be given a name when its started.
 
-```
+```elixir
 Mentat.start_link(name: :my_cache)
 ```
 
 After its been started you can store and retrieve values:
 
-```
+```elixir
 Mentat.put(:my_cache, user_id, user)
 user = Mentat.get(:my_cache, user_id)
 ```
@@ -25,7 +25,7 @@ Both `put` and `fetch` operations allow you to specify the key's TTL. If no
 TTL is provided then the TTL is set to `:infinity`. TTL times are always
 in milliseconds.
 
-```
+```elixir
 Mentat.put(:my_cache, :key, "value", [ttl: 5_000])
 
 Mentat.fetch(:my_cache, :key, [ttl: 5_000], fn key ->
