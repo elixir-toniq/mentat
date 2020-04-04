@@ -149,6 +149,13 @@ defmodule Mentat do
   end
 
   @doc """
+  Deletes a key from the cache
+  """
+  def delete(cache, key) do
+    :ets.delete(cache, key)
+  end
+
+  @doc """
   Returns a list of all keys.
   """
   def keys(cache) do
