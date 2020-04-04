@@ -29,11 +29,38 @@ defmodule Mentat do
   Mentat.fetch(:my_cache, :key, [ttl: 5_000], fn key ->
     {:commit, "value"}
   end)
+  ```
 
   ## Telemetry
 
-  Mentat publishes multiple telemetry events
-  ```
+  Mentat publishes multiple telemetry events.
+
+    * `[:mentat, :get]` - executed after retrieving a value from the cache.
+      Measurements are:
+
+      * `:status` - Can be either `:hit` or `:miss` depending on if the key was
+        found in the cache.
+
+    Metadata are:
+
+      * `:key` - The key requested
+      * `:cache` - The cache name
+
+  * `[:mentat, :put]` - executed when putting a key into the cache. No
+    measurements are provided. Metadata are:
+
+    * `:key` - The key requested
+    * `:cache` - The name of the cache
+
+  * `[:mentat, :janitor, :cleanup]` - executed after old keys are cleaned
+    from the cache. Measurements are:
+
+    * `:duration` - the time it took to clean up the old keys. Time is
+      in `:native` units.
+    * `total_removed_keys` - The count of keys removed from the cache.
+
+    Metadata are:
+    * `cache` - The cache name.
   """
   use Supervisor
 

@@ -27,11 +27,11 @@ defmodule Mentat.Janitor do
     start_time = System.monotonic_time()
     count      = Mentat.remove_expired(data.cache)
     end_time   = System.monotonic_time()
-    delta      = System.convert_time_unit(end_time - start_time, :native, :microsecond)
+    delta      = end_time - start_time
 
     :telemetry.execute(
       [:mentat, :janitor, :cleanup],
-      %{latency: delta, total_removed_keys: count},
+      %{duration: delta, total_removed_keys: count},
       %{cache: data.cache}
     )
 
