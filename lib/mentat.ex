@@ -70,6 +70,7 @@ defmodule Mentat do
   Options:
 
   `:name` - The name of the cache
+  `:ets_args` - Additional arguments to pass to `:ets.new/2`
   `:cleanup_interval` - How often the janitor process will remove old keys (defaults to 5_000).
   """
   def start_link(args) do
@@ -185,7 +186,8 @@ defmodule Mentat do
   def init(args) do
     name     = Keyword.get(args, :name)
     interval = Keyword.get(args, :cleanup_interval, 5_000)
-    ^name    = :ets.new(name, [:set, :named_table, :public])
+    ets_args = Keyword.get(args, :ets_args, [])
+    ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
 
     children = [
       {Mentat.Janitor, [name: :"#{name}_janitor", interval: interval, cache: name]}
