@@ -47,4 +47,14 @@ defmodule MentatTest do
       assert Mentat.delete(cache, :key) == true
     end
   end
+
+  describe "configuration" do
+    test "additional :ets arguments can be passed via :ets_args" do
+      stop_supervised(Mentat)
+      name = ConcurrentCache
+      start_supervised({Mentat, name: name, ets_args: [read_concurrency: true]})
+      info = :ets.info(name)
+      assert Keyword.fetch!(info, :read_concurrency)
+    end
+  end
 end
