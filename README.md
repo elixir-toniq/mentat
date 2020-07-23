@@ -38,7 +38,7 @@ end)
 ```elixir
 def deps do
   [
-    {:mentat, "~> 0.2"}
+    {:mentat, "~> 0.3"}
   ]
 end
 ```
