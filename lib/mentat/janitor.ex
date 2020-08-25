@@ -26,7 +26,17 @@ defmodule Mentat.Janitor do
   end
 
   def handle_cast({:reclaim, count}, data) do
-    Mentat.remove_oldest(data.cache, count)
+    start_time    = System.monotonic_time()
+    removed_count = Mentat.remove_oldest(data.cache, count)
+    end_time      = System.monotonic_time()
+    delta         = end_time - start_time
+
+    :telemetry.execute(
+      [:mentat, :janitor, :reclaim],
+      %{duration: delta, total_removed_keys: removed_count},
+      %{cache: data.cache}
+    )
+
     {:noreply, data}
   end
 

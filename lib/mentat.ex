@@ -250,17 +250,18 @@ defmodule Mentat do
 
   @doc false
   def remove_oldest(cache, count) do
-    entries = :ets.tab2list(cache)
+    ms = [{{:_, :_, :"$1", :_}, [], [:"$1"]}]
+    entries = :ets.select(cache, ms)
 
     oldest =
       entries
-      |> Enum.sort_by(fn {_, _, ts, _} -> ts end)
+      |> Enum.sort()
       |> Enum.take(count)
-      |> Enum.map(fn {key, _, _, _} -> key end)
+      |> List.last()
 
-    for key <- oldest do
-      :ets.delete(cache, key)
-    end
+    delete_ms = [{{:_, :_, :"$1", :_}, [{:"=<", :"$1", oldest}], [true]}]
+
+    :ets.select_delete(cache, delete_ms)
   end
 
   def init(args) do
