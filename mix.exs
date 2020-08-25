@@ -29,6 +29,7 @@ defmodule Mentat.MixProject do
   defp deps do
     [
       {:telemetry, "~> 0.4"},
+      {:nimble_options, "~> 0.2"},
 
       {:credo, "~> 1.3.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19", only: [:dev, :test]}

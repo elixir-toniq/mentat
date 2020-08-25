@@ -10,6 +10,10 @@ defmodule Mentat.Janitor do
     GenServer.start_link(__MODULE__, args, name: name)
   end
 
+  def reclaim(name, num_of_keys) do
+    GenServer.cast(name, {:reclaim, num_of_keys})
+  end
+
   def init(args) do
     data = %{
       interval: args[:interval],
@@ -19,6 +23,11 @@ defmodule Mentat.Janitor do
     Process.send_after(self(), :clean, data.interval)
 
     {:ok, data}
+  end
+
+  def handle_cast({:reclaim, count}, data) do
+    Mentat.remove_oldest(data.cache, count)
+    {:noreply, data}
   end
 
   def handle_info(:clean, data) do
@@ -38,4 +47,3 @@ defmodule Mentat.Janitor do
     {:noreply, data}
   end
 end
-

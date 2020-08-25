@@ -64,17 +64,52 @@ defmodule Mentat do
   """
   use Supervisor
 
+  alias Mentat.Janitor
+
+  @cache_options [
+    name: [
+      type: :atom,
+      required: true,
+    ],
+    cleanup_interval: [
+      type: :pos_integer,
+      default: 5_000,
+      doc: "How often the janitor process will remove old keys."
+    ],
+    ets_args: [
+      type: :any,
+      doc: "Additional arguments to pass to `:ets.new/2`.",
+      default: [],
+    ],
+    limit: [
+      doc: "Limits to the number of keys a cache will store.",
+      type: :keyword_list,
+      keys: [
+        size: [
+          type: :pos_integer,
+          doc: "The maximum number of values to store in the cache.",
+          required: true
+        ],
+        reclaim: [
+          type: :any,
+          doc: "The percentage of keys to reclaim if the limit is exceeded.",
+          default: 0.1
+        ]
+      ],
+      default: :none
+    ],
+  ]
+
   @doc """
   Starts a new cache.
 
   Options:
 
-  `:name` - The name of the cache
-  `:ets_args` - Additional arguments to pass to `:ets.new/2`
-  `:cleanup_interval` - How often the janitor process will remove old keys (defaults to 5_000).
+  #{NimbleOptions.docs(@cache_options)}
   """
   def start_link(args) do
-    name = Keyword.get(args, :name) || raise ArgumentError, "must supply a name for the cache"
+    args = NimbleOptions.validate!(args, @cache_options)
+    name = args[:name]
     Supervisor.start_link(__MODULE__, args, name: name)
   end
 
@@ -89,11 +124,11 @@ defmodule Mentat do
         :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
         nil
 
-      [{^key, _val, expire_at}] when expire_at <= now ->
+      [{^key, _val, _ts, expire_at}] when expire_at <= now ->
         :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
         nil
 
-      [{^key, val, _expire_at}] ->
+      [{^key, val, _ts, _expire_at}] ->
         :telemetry.execute([:mentat, :get], %{status: :hit}, %{key: key, cache: cache})
         val
     end
@@ -137,16 +172,36 @@ defmodule Mentat do
   options.
   """
   def put(cache, key, value, opts \\ []) do
+    %{limit: limit} = :persistent_term.get({__MODULE__, cache})
     :telemetry.execute([:mentat, :put], %{}, %{key: key, cache: cache})
 
-    case Keyword.get(opts, :ttl) do
-      nil ->
-        :ets.insert(cache, {key, value, :infinity})
-
-      millis ->
-        expire_at = ms_time(opts) + millis
-        :ets.insert(cache, {key, value, expire_at})
+    now = ms_time(opts)
+    ttl = case Keyword.get(opts, :ttl) do
+      nil    -> :infinity
+      millis -> millis + now
     end
+
+    result = :ets.insert(cache, {key, value, now, ttl})
+
+    # If we've reached the limit on the table, we need to purge a number of old
+    # keys. We do this by calling the janitor process and telling it to purge.
+    # This will, in turn call immediately back into the remove_oldest function.
+    # The back and forth here is confusing to follow, but its necessary because
+    # we want to do the purging in a different process.
+    if limit != :none && :ets.info(cache, :size) > limit.size do
+      count = ceil(limit.size * limit.reclaim)
+      Janitor.reclaim(janitor(cache), count)
+    end
+
+    result
+  end
+
+  @doc """
+  Updates a keys inserted at time. This is useful in conjunction with limits
+  when you want to evict the oldest keys.
+  """
+  def touch(cache, key, opts \\ []) do
+    :ets.update_element(cache, key, {3, ms_time(opts)})
   end
 
   @doc """
@@ -161,7 +216,7 @@ defmodule Mentat do
   """
   def keys(cache) do
     # :ets.fun2ms(fn({key, _, _} -> key end))
-    ms = [{{:"$1", :_, :_}, [], [:"$1"]}]
+    ms = [{{:"$1", :_, :_, :_}, [], [:"$1"]}]
     :ets.select(cache, ms)
   end
 
@@ -178,19 +233,45 @@ defmodule Mentat do
 
     # Match spec is found by calling:
     # :ets.fun2ms(fn {_key, _value, expire_at} when expire_at <= now -> true end)
-    ms = [{{:"$1", :"$2", :"$3"}, [{:<, :"$3", now}], [true]}]
+    ms = [{{:"$1", :"$2", :"$3", :"$4"}, [{:<, :"$4", now}], [true]}]
 
     :ets.select_delete(cache, ms)
   end
 
+  @doc false
+  def remove_oldest(cache, count) do
+    entries = :ets.tab2list(cache)
+
+    oldest =
+      entries
+      |> Enum.sort_by(fn {_, _, ts, _} -> ts end)
+      |> Enum.take(count)
+      |> Enum.map(fn {key, _, _, _} -> key end)
+
+    for key <- oldest do
+      :ets.delete(cache, key)
+    end
+  end
+
   def init(args) do
     name     = Keyword.get(args, :name)
-    interval = Keyword.get(args, :cleanup_interval, 5_000)
-    ets_args = Keyword.get(args, :ets_args, [])
+    interval = Keyword.get(args, :cleanup_interval)
+    limit    = Keyword.get(args, :limit)
+    limit    = if limit != :none, do: Map.new(limit), else: limit
+    ets_args = Keyword.get(args, :ets_args)
+
     ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
 
+    :persistent_term.put({__MODULE__, name}, %{limit: limit})
+
+    janitor_opts = [
+      name: janitor(name),
+      interval: interval,
+      cache: name
+    ]
+
     children = [
-      {Mentat.Janitor, [name: :"#{name}_janitor", interval: interval, cache: name]}
+      {Mentat.Janitor, janitor_opts}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -203,5 +284,8 @@ defmodule Mentat do
   defp ms_time(opts) do
     timer(opts).monotonic_time(:millisecond)
   end
-end
 
+  defp janitor(name) do
+    :"#{name}_janitor"
+  end
+end
