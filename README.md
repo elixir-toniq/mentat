@@ -33,6 +33,16 @@ Mentat.fetch(:my_cache, :key, [ttl: 5_000], fn key ->
 end)
 ```
 
+## Limits
+
+Mentat supports optional limits per cache.
+
+```elixir
+Mentat.start_link(name: LimitedCache, limit: [size: 100])
+```
+
+When the limit is reached, the janitor will asynchronously reclaim a percentage of the keys
+
 ## Installation
 
 ```elixir

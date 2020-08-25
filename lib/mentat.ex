@@ -31,6 +31,16 @@ defmodule Mentat do
   end)
   ```
 
+  ## Limits
+
+  Mentat supports optional limits per cache.
+
+  ```elixir
+  Mentat.start_link(name: LimitedCache, limit: [size: 100])
+  ```
+
+  When the limit is reached, the janitor will asynchronously reclaim a percentage of the keys
+
   ## Telemetry
 
   Mentat publishes multiple telemetry events.
