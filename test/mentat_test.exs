@@ -61,6 +61,19 @@ defmodule MentatTest do
     test "returns false if the key does not exist", %{cache: cache} do
       assert Mentat.touch(cache, :key) == false
     end
+
+    test "extends a keys ttl", %{cache: cache} do
+      assert Mentat.put(cache, :key, "value", ttl: 500)
+      :timer.sleep(200)
+
+      Mentat.touch(cache, :key)
+
+      # sleep more than the expected 500ms timeout (200 + 400) == 600
+      # The key should still be there and not have been evicted
+      :timer.sleep(400)
+
+      assert Mentat.get(cache, :key) == "value"
+    end
   end
 
   describe "configuration" do
