@@ -134,7 +134,7 @@ defmodule Mentat do
         :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
         nil
 
-      [{^key, _val, _ts, expire_at}] when expire_at <= now ->
+      [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now ->
         :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
         nil
 
@@ -186,10 +186,7 @@ defmodule Mentat do
     :telemetry.execute([:mentat, :put], %{}, %{key: key, cache: cache})
 
     now = ms_time(opts)
-    ttl = case Keyword.get(opts, :ttl) do
-      nil    -> :infinity
-      millis -> millis + now
-    end
+    ttl = Keyword.get(opts, :ttl) || :infinity
 
     result = :ets.insert(cache, {key, value, now, ttl})
 
@@ -241,9 +238,12 @@ defmodule Mentat do
   def remove_expired(cache, opts \\ []) do
     now = ms_time(opts)
 
-    # Match spec is found by calling:
-    # :ets.fun2ms(fn {_key, _value, expire_at} when expire_at <= now -> true end)
-    ms = [{{:"$1", :"$2", :"$3", :"$4"}, [{:<, :"$4", now}], [true]}]
+    # Find all expired keys by selecting the timestamp and ttl, adding them together
+    # and finding the keys that are lower than the current time
+    ms = [
+      {{:_, :_, :"$1", :"$2"},
+        [{:andalso, {:is_integer, :"$2"}, {:<, {:+, :"$1", :"$2"}, now}}], [true]}
+    ]
 
     :ets.select_delete(cache, ms)
   end
