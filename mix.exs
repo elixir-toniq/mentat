@@ -1,7 +1,7 @@
 defmodule Mentat.MixProject do
   use Mix.Project
 
-  @version "0.4.2"
+  @version "0.5.0"
 
   def project do
     [
@@ -29,7 +29,7 @@ defmodule Mentat.MixProject do
   defp deps do
     [
       {:telemetry, "~> 0.4"},
-      {:nimble_options, "~> 0.2"},
+      {:nimble_options, "~> 0.3"},
 
       {:credo, "~> 1.3.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19", only: [:dev, :test]}
