@@ -48,7 +48,7 @@ When the limit is reached, the janitor will asynchronously reclaim a percentage 
 ```elixir
 def deps do
   [
-    {:mentat, "~> 0.4"}
+    {:mentat, "~> 0.5"}
   ]
 end
 ```
