@@ -98,7 +98,6 @@ defmodule Mentat do
         size: [
           type: :pos_integer,
           doc: "The maximum number of values to store in the cache.",
-          required: true
         ],
         reclaim: [
           type: :any,
@@ -106,7 +105,7 @@ defmodule Mentat do
           default: 0.1
         ]
       ],
-      default: :none
+      default: []
     ],
   ]
 
@@ -268,7 +267,7 @@ defmodule Mentat do
     name     = Keyword.get(args, :name)
     interval = Keyword.get(args, :cleanup_interval)
     limit    = Keyword.get(args, :limit)
-    limit    = if limit != :none, do: Map.new(limit), else: limit
+    limit    = if limit == [], do: :none, else: Map.new(limit)
     ets_args = Keyword.get(args, :ets_args)
 
     ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
