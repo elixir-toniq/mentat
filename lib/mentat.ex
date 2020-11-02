@@ -94,19 +94,22 @@ defmodule Mentat do
     limit: [
       doc: "Limits to the number of keys a cache will store.",
       type: :keyword_list,
-      keys: [
-        size: [
-          type: :pos_integer,
-          doc: "The maximum number of values to store in the cache.",
-        ],
-        reclaim: [
-          type: :any,
-          doc: "The percentage of keys to reclaim if the limit is exceeded.",
-          default: 0.1
-        ]
-      ],
+      required: false,
       default: []
     ],
+  ]
+
+  @limit_opts [
+    size: [
+      type: :pos_integer,
+      doc: "The maximum number of values to store in the cache.",
+      required: true
+    ],
+    reclaim: [
+      type: :any,
+      doc: "The percentage of keys to reclaim if the limit is exceeded.",
+      default: 0.1
+    ]
   ]
 
   @doc """
@@ -267,7 +270,7 @@ defmodule Mentat do
     name     = Keyword.get(args, :name)
     interval = Keyword.get(args, :cleanup_interval)
     limit    = Keyword.get(args, :limit)
-    limit    = if limit == [], do: :none, else: Map.new(limit)
+    limit    = if limit == [], do: :none, else: Map.new(NimbleOptions.validate!(limit, @limit_opts))
     ets_args = Keyword.get(args, :ets_args)
 
     ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
