@@ -122,4 +122,16 @@ defmodule MentatTest do
       assert Enum.sort(keys) == [5, 6, 7, 8, 9, 10]
     end
   end
+
+  describe "default ttls" do
+    test "TTLs can be defined for all keys" do
+      stop_supervised(Mentat)
+      start_supervised({Mentat, name: TTLCache, ttl: 20})
+
+      Mentat.put(TTLCache, :key, :value)
+      :timer.sleep(30)
+
+      assert Mentat.get(TTLCache, :key) == nil
+    end
+  end
 end

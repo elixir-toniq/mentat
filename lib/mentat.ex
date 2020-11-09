@@ -97,6 +97,12 @@ defmodule Mentat do
       required: false,
       default: []
     ],
+    ttl: [
+      doc: "Default ttl in milliseconds to use for all keys",
+      type: :any,
+      required: false,
+      default: :infinity
+    ]
   ]
 
   @limit_opts [
@@ -184,11 +190,11 @@ defmodule Mentat do
   options.
   """
   def put(cache, key, value, opts \\ []) do
-    %{limit: limit} = :persistent_term.get({__MODULE__, cache})
+    %{limit: limit, ttl: default_ttl} = :persistent_term.get({__MODULE__, cache})
     :telemetry.execute([:mentat, :put], %{}, %{key: key, cache: cache})
 
     now = ms_time(opts)
-    ttl = Keyword.get(opts, :ttl) || :infinity
+    ttl = Keyword.get(opts, :ttl) || default_ttl
 
     result = :ets.insert(cache, {key, value, now, ttl})
 
@@ -272,10 +278,11 @@ defmodule Mentat do
     limit    = Keyword.get(args, :limit)
     limit    = if limit == [], do: :none, else: Map.new(NimbleOptions.validate!(limit, @limit_opts))
     ets_args = Keyword.get(args, :ets_args)
+    ttl      = Keyword.get(args, :ttl) || :infinity
 
     ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
 
-    :persistent_term.put({__MODULE__, name}, %{limit: limit})
+    :persistent_term.put({__MODULE__, name}, %{limit: limit, ttl: ttl})
 
     janitor_opts = [
       name: janitor(name),
