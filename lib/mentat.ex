@@ -1,77 +1,10 @@
 defmodule Mentat do
-  @moduledoc """
-  Provides a basic cache with ttls.
+  @external_resource readme = "README.md"
+  @moduledoc readme
+             |> File.read!()
+             |> String.split("<!--MDOC !-->")
+             |> Enum.fetch!(1)
 
-  ## Usage
-
-  A cache must be given a name when its started.
-
-  ```
-  Mentat.start_link(name: :my_cache)
-  ```
-
-  After its been started you can store and retrieve values:
-
-  ```
-  Mentat.put(:my_cache, user_id, user)
-  user = Mentat.get(:my_cache, user_id)
-  ```
-
-  ## TTLs
-
-  Both `put` and `fetch` operations allow you to specify the key's TTL. If no
-  TTL is provided then the TTL is set to `:infinity`. TTL times are always
-  in milliseconds.
-
-  ```
-  Mentat.put(:my_cache, :key, "value", [ttl: 5_000])
-
-  Mentat.fetch(:my_cache, :key, [ttl: 5_000], fn key ->
-    {:commit, "value"}
-  end)
-  ```
-
-  ## Limits
-
-  Mentat supports optional limits per cache.
-
-  ```elixir
-  Mentat.start_link(name: LimitedCache, limit: [size: 100])
-  ```
-
-  When the limit is reached, the janitor will asynchronously reclaim a percentage of the keys
-
-  ## Telemetry
-
-  Mentat publishes multiple telemetry events.
-
-    * `[:mentat, :get]` - executed after retrieving a value from the cache.
-      Measurements are:
-
-      * `:status` - Can be either `:hit` or `:miss` depending on if the key was
-        found in the cache.
-
-    Metadata are:
-
-      * `:key` - The key requested
-      * `:cache` - The cache name
-
-  * `[:mentat, :put]` - executed when putting a key into the cache. No
-    measurements are provided. Metadata are:
-
-    * `:key` - The key requested
-    * `:cache` - The name of the cache
-
-  * `[:mentat, :janitor, :cleanup]` - executed after old keys are cleaned
-    from the cache. Measurements are:
-
-    * `:duration` - the time it took to clean up the old keys. Time is
-      in `:native` units.
-    * `total_removed_keys` - The count of keys removed from the cache.
-
-    Metadata are:
-    * `cache` - The cache name.
-  """
   use Supervisor
 
   alias Mentat.Janitor

@@ -1,6 +1,7 @@
 defmodule Mentat.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/keathley/mentat"
   @version "0.6.0"
 
   def project do
@@ -13,19 +14,17 @@ defmodule Mentat.MixProject do
       description: description(),
       package: package(),
       name: "Mentat",
-      source_url: "https://github.com/keathley/mentat",
+      source_url: @source_url,
       docs: docs()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:telemetry, "~> 0.4"},
@@ -46,15 +45,17 @@ defmodule Mentat.MixProject do
     [
       name: "mentat",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/keathley/mentat"}
+      links: %{"GitHub" => @source_url}
     ]
   end
 
   def docs do
     [
+      main: "Mentat",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/keathley/mentat",
-      main: "Mentat"
+      source_url: @source_url,
+      api_reference: false,
+      extra_section: []
     ]
   end
 end
