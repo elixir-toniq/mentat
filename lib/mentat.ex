@@ -51,6 +51,17 @@ defmodule Mentat do
     ]
   ]
 
+  @doc false
+  def child_spec(opts) do
+    name = opts[:name] || raise ArgumentError, ":name is required"
+
+    %{
+      id: name,
+      type: :supervisor,
+      start: {__MODULE__, :start_link, [opts]},
+    }
+  end
+
   @doc """
   Starts a new cache.
 

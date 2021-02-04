@@ -40,6 +40,10 @@ Mentat.fetch(:my_cache, :key, [ttl: 5_000], fn key ->
 end)
 ```
 
+### Default TTLs
+
+You can set a global TTL for all new keys
+
 ## Limits
 
 Mentat supports optional limits per cache.
