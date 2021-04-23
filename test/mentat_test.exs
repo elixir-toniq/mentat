@@ -14,9 +14,9 @@ defmodule MentatTest do
 
     :timer.sleep(30)
     assert Mentat.get(cache, :key) == nil
-    assert Mentat.keys(cache) == [:key]
+    assert Mentat.keys(cache, all: true) == [:key]
     Mentat.remove_expired(cache)
-    assert Mentat.keys(cache) == []
+    assert Mentat.keys(cache, all: true) == []
   end
 
   describe "fetch/2" do
@@ -34,13 +34,13 @@ defmodule MentatTest do
       :timer.sleep(30)
       assert Mentat.get(cache, :key) == nil
       Mentat.remove_expired(cache)
-      assert Mentat.keys(cache) == []
+      assert Mentat.keys(cache, all: true) == []
     end
   end
 
   describe "delete/2" do
     test "removes the key from the cache", %{cache: cache} do
-      assert Mentat.put(cache, :key, "value") == true
+      assert Mentat.put(cache, :key, "value") == "value"
       assert Mentat.get(cache, :key) == "value"
       assert Mentat.delete(cache, :key) == true
       assert Mentat.get(cache, :key) == nil
@@ -50,7 +50,7 @@ defmodule MentatTest do
 
   describe "touch/2" do
     test "updates a cache key's inserted_at time", %{cache: cache} do
-      assert Mentat.put(cache, :key, "value") == true
+      assert Mentat.put(cache, :key, "value") == "value"
       now = System.monotonic_time(:millisecond)
       assert Mentat.touch(cache, :key) == true
 
@@ -99,7 +99,7 @@ defmodule MentatTest do
       :timer.sleep(10)
 
       assert :ets.info(LimitCache, :size) == 10
-      keys = Mentat.keys(LimitCache)
+      keys = Mentat.keys(LimitCache, all: true)
       assert Enum.sort(keys) == [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     end
 
@@ -118,7 +118,7 @@ defmodule MentatTest do
       :timer.sleep(10)
 
       assert :ets.info(LimitCache, :size) == 6
-      keys = Mentat.keys(LimitCache)
+      keys = Mentat.keys(LimitCache, all: true)
       assert Enum.sort(keys) == [5, 6, 7, 8, 9, 10]
     end
   end

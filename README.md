@@ -88,6 +88,23 @@ Mentat publishes multiple telemetry events.
 
       * `cache` - The cache name.
 
+## Contracts
+
+Mentat supports `Oath` contracts. This helps ensure that you're using Mentat correctly
+and that Mentat is returning what you expect. You can enable contracts by setting
+
+```elixir
+config :oath,
+  enable_contracts: true
+```
+
+And then recompiling Mentat in dev and test environments:
+
+```
+MIX_ENV=dev mix deps.compile mentat --force
+MIX_ENV=test mix deps.compile mentat --force
+```
+
 ## Installation
 
 ```elixir

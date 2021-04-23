@@ -9,6 +9,7 @@ defmodule Mentat.MixProject do
       app: :mentat,
       version: @version,
       elixir: "~> 1.9",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
@@ -19,6 +20,10 @@ defmodule Mentat.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "test/support/test_usage.ex"]
+  defp elixirc_paths(_), do: ["lib"]
+
   def application do
     [
       extra_applications: [:logger]
@@ -28,10 +33,13 @@ defmodule Mentat.MixProject do
   defp deps do
     [
       {:telemetry, "~> 0.4"},
-      {:nimble_options, "~> 0.3"},
+      {:norm, "~> 0.12"},
+      {:oath, "~> 0.1"},
 
       {:credo, "~> 1.3.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.19", only: [:dev, :test]}
+      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.19", only: [:dev, :test]},
+      {:propcheck, "~> 1.3", only: [:dev, :test]},
     ]
   end
 
