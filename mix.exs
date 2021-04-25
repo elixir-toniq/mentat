@@ -36,7 +36,7 @@ defmodule Mentat.MixProject do
       {:norm, "~> 0.12"},
       {:oath, "~> 0.1"},
 
-      {:credo, "~> 1.3.1", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19", only: [:dev, :test]},
       {:propcheck, "~> 1.3", only: [:dev, :test]},
