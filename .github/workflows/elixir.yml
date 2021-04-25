@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  MIX_ENV: test
+
 jobs:
   deps:
     name: Install Dependencies
@@ -13,14 +16,14 @@ jobs:
     strategy:
       matrix:
         elixir: [1.11]
-        otp: [23.2]
+        otp: [23.3]
     steps:
     - name: checkout
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
     - name: setup
-      uses: actions/setup-elixir@v1
+      uses: erlef/setup-beam@v1
       with:
         elixir-version: ${{ matrix.elixir }}
         otp-version: ${{ matrix.otp }}
@@ -32,6 +35,7 @@ jobs:
           deps
           _build
           priv/plts
+        key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
     - name: Install deps
       if: steps.mix-cache.outputs.cache-hit != 'true'
       run: |
@@ -49,13 +53,13 @@ jobs:
     strategy:
       matrix:
         elixir: [1.11]
-        otp: [23.2]
+        otp: [23.3]
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
     - name: Setup elixir
-      uses: actions/setup-elixir@v1
+      uses: erlef/setup-beam@v1
       with:
         elixir-version: ${{ matrix.elixir }}
         otp-version: ${{ matrix.otp }}
@@ -67,7 +71,7 @@ jobs:
           deps
           _build
           priv/plts
-      key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+        key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
     - name: Run Credo
       run: mix credo
     - name: Run Dialyzer
@@ -80,12 +84,12 @@ jobs:
     strategy:
       matrix:
         elixir: [1.11]
-        otp: [23.2]
+        otp: [23.3]
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - uses: actions/setup-elixir@v1
+    - uses: erlef/setup-beam@v1
       with:
         elixir-version: ${{ matrix.elixir }}
         otp-version: ${{ matrix.otp }}
@@ -97,6 +101,6 @@ jobs:
           deps
           _build
           priv/plts
-      key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+        key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
     - name: Run Tests
       run: mix test
