@@ -8,7 +8,7 @@ defmodule Mentat.FakeTime do
     get_time()
   end
 
-  def incr do
+  def advance_time do
     :ok = set_time(get_time() + 1)
     true
   end

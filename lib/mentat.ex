@@ -190,7 +190,7 @@ defmodule Mentat do
   """
   @spec keys(name()) :: [key()]
   def keys(cache, opts \\ []) do
-    ms = if opts[:all] do
+    ms = if opts[:all] == true do
       [{{:"$1", :_, :_, :_}, [], [:"$1"]}]
     else
       config = get_config(cache)
