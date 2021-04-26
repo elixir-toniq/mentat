@@ -110,7 +110,7 @@ MIX_ENV=test mix deps.compile mentat --force
 ```elixir
 def deps do
   [
-    {:mentat, "~> 0.5"}
+    {:mentat, "~> 0.7"}
   ]
 end
 ```
