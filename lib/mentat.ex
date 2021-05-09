@@ -16,6 +16,8 @@ defmodule Mentat do
     {:ttl, pos_integer() | :infinity},
   ]
 
+  @default_limit %{reclaim: 0.1}
+
   alias Mentat.Janitor
 
   defp cache_opts do
@@ -56,8 +58,8 @@ defmodule Mentat do
   * `:ets_args` - Additional arguments to pass to `:ets.new/2`.
   * `:ttl` - The default ttl for all keys. Default `:infinity`.
   * `:limit` - Limits to the number of keys a cache will store. Defaults to `:none`.
-    * `size` - The maximum number of values to store in the cache.
-    * `reclaim` - The percentage of keys to reclaim if the limit is exceeded. Defaults to 0.1.
+    * `:size` - The maximum number of values to store in the cache.
+    * `:reclaim` - The percentage of keys to reclaim if the limit is exceeded. Defaults to 0.1.
   """
   @spec start_link(cache_opts()) :: Supervisor.on_start()
   def start_link(args) do
@@ -86,7 +88,7 @@ defmodule Mentat do
   end)
   ```
   """
-  @spec fetch(name(), key(), put_opts(), (key() -> {:commit, value()} | {:ignore, value()})) :: value() | nil
+  @spec fetch(name(), key(), put_opts(), (key() -> {:commit, value()} | {:ignore, value()})) :: value()
   def fetch(cache, key, opts \\ [], fallback) do
     with nil <- get(cache, key) do
       case fallback.(key) do
@@ -103,7 +105,7 @@ defmodule Mentat do
   @doc """
   Retrieves a value from a the cache. Returns `nil` if the key is not found.
   """
-  @spec get(name(), key()) :: value() | nil
+  @spec get(name(), key()) :: value()
   def get(cache, key) do
     config = get_config(cache)
     now    = ms_time(config.clock)
@@ -251,7 +253,7 @@ defmodule Mentat do
     name     = args[:name]
     interval = args[:cleanup_interval] || 5_000
     limit    = args[:limit] || :none
-    limit    = if limit != :none, do: Map.new(limit), else: limit
+    limit    = if limit != :none, do: Map.merge(@default_limit, Map.new(limit)), else: limit
     ets_args = args[:ets_args] || []
     clock    = args[:clock] || System
     ttl      = args[:ttl] || :infinity

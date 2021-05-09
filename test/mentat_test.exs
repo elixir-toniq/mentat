@@ -89,7 +89,7 @@ defmodule MentatTest do
   describe "limits" do
     test "caches can have fixed limits" do
       stop_supervised(Mentat)
-      start_supervised({Mentat, name: LimitCache, limit: [size: 10, reclaim: 0.1]})
+      start_supervised({Mentat, name: LimitCache, limit: [size: 10]})
 
       for i <- 0..20 do
         Mentat.put(LimitCache, i, i)
