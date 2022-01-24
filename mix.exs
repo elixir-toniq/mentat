@@ -32,7 +32,7 @@ defmodule Mentat.MixProject do
 
   defp deps do
     [
-      {:telemetry, "~> 0.4"},
+      {:telemetry, "~> 0.4 or ~> 1.0"},
       {:norm, "~> 0.12"},
       {:oath, "~> 0.1"},
 
