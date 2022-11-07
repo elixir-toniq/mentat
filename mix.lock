@@ -17,5 +17,5 @@
   "oath": {:hex, :oath, "0.1.1", "9e96fc0bc94c8e2fe2deb84641f8b4533b7753575ac1829e1db4180f2b5656c4", [:mix], [{:decorator, "~> 1.3", [hex: :decorator, repo: "hexpm", optional: false]}], "hexpm", "d7e32cf0555905d422e5a90e8a7ce49c123710caa0fa2f7840bddbc1a0e93103"},
   "propcheck": {:hex, :propcheck, "1.3.0", "0eda73220796262c8cb38d1bf4f7ca6eb428b414f495184132f317958bb9ad68", [:mix], [{:libgraph, "~> 0.13", [hex: :libgraph, repo: "hexpm", optional: false]}, {:proper, "~> 1.3", [hex: :proper, repo: "hexpm", optional: false]}], "hexpm", "3ef93a24dc5729bdf2c418045e1a4008a79446872fd5eb0f63dc58691ae47601"},
   "proper": {:hex, :proper, "1.3.0", "c1acd51c51da17a2fe91d7a6fc6a0c25a6a9849d8dc77093533109d1218d8457", [:make, :mix, :rebar3], [], "hexpm", "4aa192fccddd03fdbe50fef620be9d4d2f92635b54f55fb83aec185994403cbc"},
-  "telemetry": {:hex, :telemetry, "0.4.3", "a06428a514bdbc63293cd9a6263aad00ddeb66f608163bdec7c8995784080818", [:rebar3], [], "hexpm", "eb72b8365ffda5bed68a620d1da88525e326cb82a75ee61354fc24b844768041"},
+  "telemetry": {:hex, :telemetry, "1.0.0", "0f453a102cdf13d506b7c0ab158324c337c41f1cc7548f0bc0e130bbf0ae9452", [:rebar3], [], "hexpm", "73bc09fa59b4a0284efb4624335583c528e07ec9ae76aca96ea0673850aec57a"},
 }
