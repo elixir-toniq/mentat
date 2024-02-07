@@ -36,6 +36,22 @@ defmodule MentatTest do
       Mentat.remove_expired(cache)
       assert Mentat.keys(cache, all: true) == []
     end
+
+    test "does not call the fallback function when a nil is cached", %{cache: cache} do
+      test_pid = self()
+      fallback = fn _key ->
+        send(test_pid, :called)
+        {:commit, 42}
+      end
+
+      assert nil == Mentat.put(cache, :key, nil)
+      assert nil == Mentat.fetch(cache, :key, fallback)
+      refute_received :called
+
+      assert nil == Mentat.fetch(cache, :another_key, fn _key -> {:commit, nil} end)
+      assert nil == Mentat.fetch(cache, :key, fallback)
+      refute_received :called
+    end
   end
 
   describe "delete/2" do

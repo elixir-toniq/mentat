@@ -74,6 +74,10 @@ defmodule Mentat do
   returned, the value will be stored in the cache before its returned. See the
   "TTLs" section for a list of options.
 
+  Since `fetch` is logically the same as a `get` (and also a `put` if
+  `{:commit, term()}` is returned from the fallback function), it shares the
+  same Telemetry events (`[:mentat, :get]` and `[:mentat, :put]`).
+
   ## Example
 
   ```
@@ -90,14 +94,15 @@ defmodule Mentat do
   """
   @spec fetch(name(), key(), put_opts(), (key() -> {:commit, value()} | {:ignore, value()})) :: value()
   def fetch(cache, key, opts \\ [], fallback) do
-    with nil <- get(cache, key) do
-      case fallback.(key) do
-        {:commit, value} ->
-          put(cache, key, value, opts)
-          value
+    {status, value} = lookup(cache, key)
+    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
 
-        {:ignore, value} ->
-          value
+    if status == :hit do
+      value
+    else
+      case fallback.(key) do
+        {:commit, value} -> put(cache, key, value, opts)
+        {:ignore, value} -> value
       end
     end
   end
@@ -107,22 +112,9 @@ defmodule Mentat do
   """
   @spec get(name(), key()) :: value()
   def get(cache, key) do
-    config = get_config(cache)
-    now    = ms_time(config.clock)
-
-    case :ets.lookup(cache, key) do
-      [] ->
-        :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
-        nil
-
-      [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now ->
-        :telemetry.execute([:mentat, :get], %{status: :miss}, %{key: key, cache: cache})
-        nil
-
-      [{^key, val, _ts, _expire_at}] ->
-        :telemetry.execute([:mentat, :get], %{status: :hit}, %{key: key, cache: cache})
-        val
-    end
+    {status, value} = lookup(cache, key)
+    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
+    value
   end
 
 
@@ -276,6 +268,17 @@ defmodule Mentat do
 
   def stop(name) do
     Supervisor.stop(name)
+  end
+
+  defp lookup(cache, key) do
+    config = get_config(cache)
+    now    = ms_time(config.clock)
+
+    case :ets.lookup(cache, key) do
+      [] -> {:miss, nil}
+      [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now -> {:miss, nil}
+      [{^key, val, _ts, _expire_at}] -> {:hit, val}
+    end
   end
 
   defp put_config(cache, config) do
