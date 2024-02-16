@@ -1,8 +1,8 @@
 defmodule Mentat.MixProject do
   use Mix.Project
 
-  @source_url "https://github.com/keathley/mentat"
-  @version "0.7.2"
+  @source_url "https://github.com/elixir-toniq/mentat"
+  @version "0.7.3"
 
   def project do
     [
