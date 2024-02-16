@@ -95,7 +95,6 @@ defmodule Mentat do
   @spec fetch(name(), key(), put_opts(), (key() -> {:commit, value()} | {:ignore, value()})) :: value()
   def fetch(cache, key, opts \\ [], fallback) do
     {status, value} = lookup(cache, key)
-    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
 
     if status == :hit do
       value
@@ -112,8 +111,7 @@ defmodule Mentat do
   """
   @spec get(name(), key()) :: value()
   def get(cache, key) do
-    {status, value} = lookup(cache, key)
-    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
+    {_status, value} = lookup(cache, key)
     value
   end
 
@@ -274,11 +272,16 @@ defmodule Mentat do
     config = get_config(cache)
     now    = ms_time(config.clock)
 
-    case :ets.lookup(cache, key) do
-      [] -> {:miss, nil}
-      [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now -> {:miss, nil}
-      [{^key, val, _ts, _expire_at}] -> {:hit, val}
-    end
+    {status, value} =
+      case :ets.lookup(cache, key) do
+        [] -> {:miss, nil}
+        [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now -> {:miss, nil}
+        [{^key, val, _ts, _expire_at}] -> {:hit, val}
+      end
+
+    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
+
+    {status, value}
   end
 
   defp put_config(cache, config) do
