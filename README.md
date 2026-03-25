@@ -58,19 +58,45 @@ When the limit is reached, the janitor will asynchronously reclaim a percentage 
 
 Mentat publishes multiple telemetry events.
 
-  * `[:mentat, :get]` - executed after retrieving a value from the cache.
+  * `[:mentat, :get, :start]` - executed before retrieving a value from cache
     Measurements are:
 
-    * `:status` - Can be either `:hit` or `:miss` depending on if the key was
-      found in the cache.
+    * `:system_time` - Current system time
+    * `:monotonic_time` - Current monotonic time
 
     Metadata are:
 
       * `:key` - The key requested
       * `:cache` - The cache name
 
-  * `[:mentat, :put]` - executed when putting a key into the cache. No
-    measurements are provided.
+  * `[:mentat, :get, :stop]` - executed before retrieving a value from cache
+    Measurements are:
+
+    * `:duration` - Duration in native units
+    * `:monotonic_time` - Current monotonic time
+
+    Metadata are:
+
+      * `:key` - The key requested
+      * `:cache` - The cache name
+      * `:status` - Can be either `:hit` or `:miss` depending on if the key was found in the cache
+
+  * `[:mentat, :put, :start]` - executed before putting a key into the cache.
+    Measurements are:
+
+    * `:system_time` - Current system time
+    * `:monotonic_time` - Current monotonic time
+
+    Metadata are:
+
+      * `:key` - The key requested
+      * `:cache` - The name of the cache
+
+  * `[:mentat, :put, :stop]` - executed after putting a key into the cache.
+    Measurements are:
+
+    * `:duration` - Current system time
+    * `:monotonic_time` - Current monotonic time
 
     Metadata are:
 
