@@ -33,7 +33,7 @@ defmodule Mentat.MixProject do
   defp deps do
     [
       {:telemetry, "~> 0.4 or ~> 1.0"},
-      {:norm, "~> 0.12"},
+      {:nimble_options, "~> 1.1"},
       {:oath, "~> 0.1"},
 
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},

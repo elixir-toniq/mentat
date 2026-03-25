@@ -8,7 +8,55 @@ defmodule Mentat do
   use Supervisor
   use Oath
 
-  @type cache_opts() :: Keyword.t()
+  @cache_opts NimbleOptions.new!([
+    name: [
+      type: :atom,
+      doc: "The cache name as an atom",
+      required: true
+    ],
+    cleanup_interval: [
+      type: :pos_integer,
+      doc: "How often the janitor process will remove old keys.",
+      default: 5_000
+    ],
+    ets_args: [
+      type: {:list, :any},
+      doc: "Additional arguments to pass to `:ets.new/2`",
+      default: []
+    ],
+    ttl: [
+      type: :timeout,
+      doc: "The default ttl for all keys. Defaults to `:infinity`.",
+      default: :infinity
+    ],
+    limit: [
+      type: :keyword_list,
+      doc: "Limits to the number of keys a cache will store.",
+      keys: [
+        size: [
+          type: :pos_integer,
+          required: true,
+          doc: "The maximum number of values to store in the cache"
+        ],
+        reclaim: [
+          type: :float,
+          default: 0.1,
+          doc: "The percentage of keys to reclaim if the limit is exceeded."
+        ]
+      ]
+    ],
+    clock: [
+      type: :any,
+      doc: false,
+      type_doc: false,
+      default: System
+    ]
+  ])
+
+  @default_limit %{reclaim: 0.1}
+
+  @type cache_opt() :: unquote(NimbleOptions.option_typespec(@cache_opts))
+  @type cache_opts() :: [cache_opt()]
   @type name :: atom()
   @type key :: term()
   @type value :: term()
@@ -16,27 +64,7 @@ defmodule Mentat do
     {:ttl, pos_integer() | :infinity},
   ]
 
-  @default_limit %{reclaim: 0.1}
-
   alias Mentat.Janitor
-
-  defp cache_opts do
-    import Norm
-
-    coll_of(
-      one_of([
-        {:name, spec(is_atom)},
-        {:cleanup_interval, spec(is_integer and & &1 > 0)},
-        {:ets_args, spec(is_list)},
-        {:ttl, one_of([spec(is_integer and & &1 > 0), :infinity])},
-        {:clock, spec(is_atom)},
-        {:limit, coll_of(one_of([
-          {:size, spec(is_integer and & &1 > 0)},
-          {:reclaim, spec(is_float)},
-        ]))}
-      ])
-    )
-  end
 
   @doc false
   def child_spec(opts) do
@@ -53,17 +81,11 @@ defmodule Mentat do
   Starts a new cache.
 
   Options:
-  * `:name` - the cache name as an atom. required.
-  * `:cleanup_interval` - How often the janitor process will remove old keys. Defaults to 5_000.
-  * `:ets_args` - Additional arguments to pass to `:ets.new/2`.
-  * `:ttl` - The default ttl for all keys. Default `:infinity`.
-  * `:limit` - Limits to the number of keys a cache will store. Defaults to `:none`.
-    * `:size` - The maximum number of values to store in the cache.
-    * `:reclaim` - The percentage of keys to reclaim if the limit is exceeded. Defaults to 0.1.
+  #{NimbleOptions.docs(@cache_opts)}
   """
   @spec start_link(cache_opts()) :: Supervisor.on_start()
   def start_link(args) do
-    args = Norm.conform!(args, cache_opts())
+    args = NimbleOptions.validate!(args, @cache_opts)
     name = args[:name]
     Supervisor.start_link(__MODULE__, args, name: name)
   end
@@ -245,12 +267,12 @@ defmodule Mentat do
 
   def init(args) do
     name     = args[:name]
-    interval = args[:cleanup_interval] || 5_000
+    interval = args[:cleanup_interval]
     limit    = args[:limit] || :none
     limit    = if limit != :none, do: Map.merge(@default_limit, Map.new(limit)), else: limit
     ets_args = args[:ets_args] || []
     clock    = args[:clock] || System
-    ttl      = args[:ttl] || :infinity
+    ttl      = args[:ttl]
     ^name    = :ets.new(name, [:set, :named_table, :public] ++ ets_args)
 
     put_config(name, %{limit: limit, ttl: ttl, clock: clock})
