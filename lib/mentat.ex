@@ -129,29 +129,33 @@ defmodule Mentat do
   end)
   def put(cache, key, value, opts \\ [])
   def put(cache, key, value, opts) do
-    config = get_config(cache)
-    :telemetry.execute([:mentat, :put], %{}, %{key: key, cache: cache})
+    :telemetry.span([:mentat, :put], %{key: key, cache: cache}, fn ->
+      config = get_config(cache)
 
-    now = ms_time(config.clock)
-    ttl = opts[:ttl] || config.ttl
+      # Leaving this telemetry event for legacy support. We should remove eventually.
+      :telemetry.execute([:mentat, :put], %{}, %{key: key, cache: cache})
 
-    if ttl < 0 do
-      raise ArgumentError, "`:ttl` must be greater than 0"
-    end
+      now = ms_time(config.clock)
+      ttl = opts[:ttl] || config.ttl
 
-    true = :ets.insert(cache, {key, value, now, ttl})
+      if ttl < 0 do
+        raise ArgumentError, "`:ttl` must be greater than 0"
+      end
 
-    # If we've reached the limit on the table, we need to purge a number of old
-    # keys. We do this by calling the janitor process and telling it to purge.
-    # This will, in turn call immediately back into the remove_oldest function.
-    # The back and forth here is confusing to follow, but its necessary because
-    # we want to do the purging in a different process.
-    if config.limit != :none && :ets.info(cache, :size) > config.limit.size do
-      count = ceil(config.limit.size * config.limit.reclaim)
-      Janitor.reclaim(janitor(cache), count)
-    end
+      true = :ets.insert(cache, {key, value, now, ttl})
 
-    value
+      # If we've reached the limit on the table, we need to purge a number of old
+      # keys. We do this by calling the janitor process and telling it to purge.
+      # This will, in turn call immediately back into the remove_oldest function.
+      # The back and forth here is confusing to follow, but its necessary because
+      # we want to do the purging in a different process.
+      if config.limit != :none && :ets.info(cache, :size) > config.limit.size do
+        count = ceil(config.limit.size * config.limit.reclaim)
+        Janitor.reclaim(janitor(cache), count)
+      end
+
+      {value, %{key: key, cache: cache}}
+    end)
   end
 
   @doc """
@@ -269,19 +273,22 @@ defmodule Mentat do
   end
 
   defp lookup(cache, key) do
-    config = get_config(cache)
-    now    = ms_time(config.clock)
+    :telemetry.span([:mentat, :get], %{cache: cache, key: key}, fn ->
+      config = get_config(cache)
+      now    = ms_time(config.clock)
 
-    {status, value} =
-      case :ets.lookup(cache, key) do
-        [] -> {:miss, nil}
-        [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now -> {:miss, nil}
-        [{^key, val, _ts, _expire_at}] -> {:hit, val}
-      end
+      {status, value} =
+        case :ets.lookup(cache, key) do
+          [] -> {:miss, nil}
+          [{^key, _val, ts, ttl}] when is_integer(ttl) and ts + ttl <= now -> {:miss, nil}
+          [{^key, val, _ts, _expire_at}] -> {:hit, val}
+        end
 
-    :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
+      # Leaving this telemetry event for legacy support. We should remove eventually.
+      :telemetry.execute([:mentat, :get], %{status: status}, %{key: key, cache: cache})
 
-    {status, value}
+      {{status, value}, %{key: key, cache: cache, status: status}}
+    end)
   end
 
   defp put_config(cache, config) do
