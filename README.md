@@ -52,7 +52,7 @@ Mentat supports optional limits per cache.
 Mentat.start_link(name: LimitedCache, limit: [size: 100])
 ```
 
-When the limit is reached, the janitor will asynchronously reclaim a percentage of the keys.
+When the limit is reached, the janitor will asynchronously reclaim a percentage of the keys. The janitor will removed the oldest entries first. If multiple entries share a timestamp (they were inserted at the same time) than they are removed by key in ascending order.
 
 ## Telemetry
 
