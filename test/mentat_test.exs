@@ -109,12 +109,11 @@ defmodule MentatTest do
 
       for i <- 0..20 do
         Mentat.put(LimitCache, i, i)
-        :timer.sleep(10)
       end
 
       :timer.sleep(10)
 
-      assert :ets.info(LimitCache, :size) == 10
+      assert Mentat.size(LimitCache) == 10
       keys = Mentat.keys(LimitCache, all: true)
       assert Enum.sort(keys) == [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     end
@@ -125,7 +124,6 @@ defmodule MentatTest do
 
       for i <- 0..9 do
         Mentat.put(LimitCache, i, i)
-        :timer.sleep(10)
       end
 
       # Exceed the limit and wait for items to be reclaimed
@@ -133,7 +131,7 @@ defmodule MentatTest do
 
       :timer.sleep(10)
 
-      assert :ets.info(LimitCache, :size) == 6
+      assert Mentat.size(LimitCache) == 6
       keys = Mentat.keys(LimitCache, all: true)
       assert Enum.sort(keys) == [5, 6, 7, 8, 9, 10]
     end

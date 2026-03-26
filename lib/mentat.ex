@@ -172,8 +172,7 @@ defmodule Mentat do
       # The back and forth here is confusing to follow, but its necessary because
       # we want to do the purging in a different process.
       if config.limit != :none && :ets.info(cache, :size) > config.limit.size do
-        count = ceil(config.limit.size * config.limit.reclaim)
-        Janitor.reclaim(janitor(cache), count)
+        Janitor.reclaim(janitor(cache))
       end
 
       {value, %{key: key, cache: cache}}
@@ -198,6 +197,14 @@ defmodule Mentat do
   @spec delete(name(), key()) :: true
   def delete(cache, key) do
     :ets.delete(cache, key)
+  end
+
+  @doc """
+  Returns the current size of the cache
+  """
+  @spec size(name()) :: pos_integer()
+  def size(cache) do
+    :ets.info(cache, :size)
   end
 
   @doc """
@@ -251,18 +258,14 @@ defmodule Mentat do
 
   @doc false
   def remove_oldest(cache, count) do
-    ms = [{{:_, :_, :"$1", :_}, [], [:"$1"]}]
+    ms = [{{:"$1", :_, :"$2", :_}, [], [{{:"$2", :"$1"}}]}]
     entries = :ets.select(cache, ms)
 
-    oldest =
-      entries
-      |> Enum.sort()
-      |> Enum.take(count)
-      |> List.last()
-
-    delete_ms = [{{:_, :_, :"$1", :_}, [{:"=<", :"$1", oldest}], [true]}]
-
-    :ets.select_delete(cache, delete_ms)
+    entries
+    |> Enum.sort()
+    |> Enum.take(count)
+    |> Enum.map(fn {ts, key} -> :ets.match_delete(cache, {key, :_, ts, :_}) end)
+    |> Enum.count(& &1)
   end
 
   def init(args) do
@@ -317,7 +320,7 @@ defmodule Mentat do
     :persistent_term.put({__MODULE__, cache}, config)
   end
 
-  defp get_config(cache) do
+  def get_config(cache) do
     :persistent_term.get({__MODULE__, cache})
   end
 
