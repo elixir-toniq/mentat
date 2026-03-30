@@ -10,8 +10,8 @@ defmodule Mentat.Janitor do
     GenServer.start_link(__MODULE__, args, name: name)
   end
 
-  def reclaim(name, num_of_keys) do
-    GenServer.cast(name, {:reclaim, num_of_keys})
+  def reclaim(name) do
+    GenServer.cast(name, :reclaim)
   end
 
   def init(args) do
@@ -25,17 +25,30 @@ defmodule Mentat.Janitor do
     {:ok, data}
   end
 
-  def handle_cast({:reclaim, count}, data) do
-    start_time    = System.monotonic_time()
-    removed_count = Mentat.remove_oldest(data.cache, count)
-    end_time      = System.monotonic_time()
-    delta         = end_time - start_time
+  def handle_cast(:reclaim, data) do
+    config = Mentat.get_config(data.cache)
 
-    :telemetry.execute(
-      [:mentat, :janitor, :reclaim],
-      %{duration: delta, total_removed_keys: removed_count},
-      %{cache: data.cache}
-    )
+    # This logic is duplicated from `Mentat.put`. This is because we only
+    # want to send this message from a calling process if there's a reason
+    # to do a reclamation. But, multiple processes might detect this issue
+    # simultaneously. If we don't check again here we will erroneously 
+    # trigger multiple reclamations which can end up removing many more keys
+    # than is intended.
+    if Mentat.size(data.cache) > config.limit.size do
+      start_time    = System.monotonic_time()
+      count = ceil(config.limit.size * config.limit.reclaim)
+
+      removed_count = Mentat.remove_oldest(data.cache, count)
+
+      end_time      = System.monotonic_time()
+      delta         = end_time - start_time
+
+      :telemetry.execute(
+        [:mentat, :janitor, :reclaim],
+        %{duration: delta, total_removed_keys: removed_count},
+        %{cache: data.cache}
+      )
+    end
 
     {:noreply, data}
   end
